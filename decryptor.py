@@ -28,7 +28,7 @@ def unzip_folder(zip_path, extract_to):
     with zipfile.ZipFile(zip_path, 'r') as zipf:
         zipf.extractall(extract_to)
 
-if __name__ == "__main__":
+def main():
     # Step 1: Decrypt AES key using RSA private key
     aes_key = decrypt_key_with_rsa("rsa_private.pem")
 
@@ -41,3 +41,6 @@ if __name__ == "__main__":
     # Step 4: Clean up
     os.remove("decrypted.zip")
     print("Decryption complete. Files restored to 'decrypted_files'.")
+
+if __name__ == "__main__":
+    main()

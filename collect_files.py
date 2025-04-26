@@ -1,18 +1,27 @@
 import os
 import shutil
 
-def collect_files(source_dir, destination_dir):
+def collect_files(source_dir, destination_dir, extensions):
     if not os.path.exists(destination_dir):
         os.makedirs(destination_dir)
 
-    for filename in os.listdir(source_dir):
-        source_path = os.path.join(source_dir, filename)
-        dest_path = os.path.join(destination_dir, filename)
+    for root, _, files in os.walk(source_dir):
+        for filename in files:
+            if filename.lower().endswith(extensions):
+                source_path = os.path.join(root, filename)
+                dest_path = os.path.join(destination_dir, filename)
+                shutil.copy2(source_path, dest_path)
 
-        if os.path.isfile(source_path):
-            shutil.copy2(source_path, dest_path)
+    print(f"Files with {extensions} copied to: {destination_dir}")
 
-    print(f"Files copied to: {destination_dir}")
+def main():
+    source_dir = input("Enter the source directory (where files are located): ").strip()
+    destination_dir = "collected_files"
+    extensions_input = input("Enter file extensions to collect (comma separated, e.g., .txt,.docx,.jpg): ").strip()
+
+    extensions = tuple(ext.strip().lower() for ext in extensions_input.split(","))
+
+    collect_files(source_dir, destination_dir, extensions)
 
 if __name__ == "__main__":
-    collect_files("files_to_encrypt", "collected_files")
+    main()

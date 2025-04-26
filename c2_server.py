@@ -1,26 +1,35 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
+import http.server
+import socketserver
 import os
 
-UPLOAD_FOLDER = "exfiltrated_data"
 PORT = 8000
+UPLOAD_DIR = './uploads'  # Directory where uploaded files will be saved
 
-class SimpleC2Handler(BaseHTTPRequestHandler):
+# Ensure the upload directory exists
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
+
+class SimpleHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
-        content_length = int(self.headers['Content-Length'])
-        filename = self.headers.get('X-Filename', 'unknown.bin')
+        if self.path == '/upload':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            
+            # Write the uploaded file to the server's storage
+            with open(os.path.join(UPLOAD_DIR, 'exfiltrated_file.log'), 'wb') as f:
+                f.write(post_data)
+                
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b"File uploaded successfully.")
+        else:
+            self.send_response(404)
+            self.end_headers()
 
-        data = self.rfile.read(content_length)
+# Start the HTTP server
+Handler = SimpleHTTPRequestHandler
+httpd = socketserver.TCPServer(("", PORT), Handler)
 
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
-        with open(file_path, 'wb') as f:
-            f.write(data)
-
-        print(f"[+] Received: {filename}")
-        self.send_response(200)
-        self.end_headers()
-
-if __name__ == "__main__":
-    server = HTTPServer(('0.0.0.0', PORT), SimpleC2Handler)
-    print(f"[+] C2 Server running on port {PORT}...")
-    server.serve_forever()
+print(f"Serving on port {PORT}...")
+httpd.serve_forever()
