@@ -1,33 +1,18 @@
 import os
+import shutil
 
-def collect_files(directory, extensions=None, log_file='files.log'):
-    if extensions is None:
-        extensions = ['.txt', '.docx', '.jpg']
+def collect_files(source_dir, destination_dir):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
 
-    collected_files = []
+    for filename in os.listdir(source_dir):
+        source_path = os.path.join(source_dir, filename)
+        dest_path = os.path.join(destination_dir, filename)
 
-    # Recursively walk through directories
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if any(file.lower().endswith(ext) for ext in extensions):
-                file_path = os.path.join(root, file)
-                collected_files.append(file_path)
+        if os.path.isfile(source_path):
+            shutil.copy2(source_path, dest_path)
 
-    # Save to log file
-    with open(log_file, 'w') as f:
-        for path in collected_files:
-            f.write(path + '\n')
+    print(f"Files copied to: {destination_dir}")
 
-    print(f"[+] Collected {len(collected_files)} files.")
-    return collected_files
-
-# Example usage
 if __name__ == "__main__":
-    import sys
-
-    target_dir = input("Enter the directory to search: ").strip()
-    if not os.path.isdir(target_dir):
-        print("[-] Invalid directory.")
-        sys.exit(1)
-
-    collect_files(target_dir)
+    collect_files("files_to_encrypt", "collected_files")
