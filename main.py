@@ -1,4 +1,4 @@
-import collector
+import collect_files
 import encryptor
 import exfiltrate
 
